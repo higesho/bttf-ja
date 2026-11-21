@@ -14,7 +14,7 @@
 |---|---|---|
 | エピソード1「イッツ・アバウト・タイム」（Episode 1: It's About Time） | 公開中 | [BTTF_Ep1_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep1-v1.0) |
 | エピソード2「ゲット・タネン！」（Episode 2: Get Tannen!） | 公開中 | [BTTF_Ep2_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep2-v1.0) |
-| エピソード3「シチズン・ブラウン」（Episode 3: Citizen Brown） | 予定 | |
+| エピソード3「シチズン・ブラウン」（Episode 3: Citizen Brown） | 公開中 | [BTTF_Ep3_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep3-v1.0) |
 | エピソード4「ダブル・ヴィジョンズ」（Episode 4: Double Visions） | 予定 | |
 | エピソード5「アウタタイム」（Episode 5: OUTATIME） | 予定 | |
 

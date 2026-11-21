@@ -20,3 +20,14 @@ def landbs():
         for name, off, sz, z in a.files:
             if name.lower().endswith('_english.landb') and name not in out: out[name] = a.read(off, sz)
     return out
+
+def prev_ja():
+    """前のエピソードまでの訳（英文→訳）。後のエピソードの訳を優先する。fixes で "" にしたもの（英語のまま）も含む"""
+    import json
+    out = {}
+    for e in range(1, EP):
+        d = ROOT if e == 1 else os.path.join(ROOT, 'ep%d' % e)
+        for n in ('ja.json', 'fixes.json'):
+            p = os.path.join(d, 'text', n)
+            if os.path.exists(p): out.update(json.load(open(p, encoding='utf-8')))
+    return out

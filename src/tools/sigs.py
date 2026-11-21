@@ -3,7 +3,7 @@
 import sys, re, capstone, struct
 BASE = 0x400000
 D1 = open('work/dump.bin', 'rb').read()
-SITES = {'GETGLYPH': 0x65b710, 'PAGELOOP': 0x6eccbd, 'BINDCALL': 0x6f05c6, 'BIND': 0x75b190, 'SETTEXT': 0x6ec540,
+SITES = {'GETGLYPH': 0x65b710, 'PAGELOOP': 0x6eccbd, 'BINDCALL': 0x6f05c6, 'BIND': 0x75b190, 'SETTEXT': 0x6ec540, 'UNCOMPR': 0x4b3eb0,
          'E0': 0x6eaec0, 'E1': 0x6eb040, 'E2': 0x6eb120, 'E3': 0x6eb250, 'E4': 0x6eb620, 'E5': 0x6ec700, 'E6': 0x6ee8f0}
 md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32); md.detail = True
 def pattern(a, n=40, back=0):

@@ -5,12 +5,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); ROOT = __import_
 en = json.load(open(os.path.join(ROOT, 'text', 'en.json'), encoding='utf-8'))
 SKIP_IDS = {226639961, 226639962, 226639963}      # 仮置きの歌詞（訳さない）
 TAGS = re.compile(r'\[[^\]]*\]|\{[^}]*\}|<<[^>]*>>')
-# Ep2 以降：Ep1 で訳した（または英語のまま残すと決めた）英文は訳さない（merge.py が引き継ぐ）
-EP1 = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'text'))
-done = set()
-if ROOT != os.path.dirname(EP1):
-    done |= set(json.load(open(os.path.join(EP1, 'ja.json'), encoding='utf-8')))
-    done |= set(json.load(open(os.path.join(EP1, 'fixes.json'), encoding='utf-8')))
+# Ep2 以降：前のエピソードで訳した（または英語のまま残すと決めた）英文は訳さない（merge.py が引き継ぐ）
+done = set(__import__('ep').prev_ja())
 rows = []
 for t, refs in en.items():
     if t in done: continue

@@ -5,14 +5,11 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); ROOT = __import__('ep').EPD   # エピソードの作業フォルダ
 out = {}
 n = 0
-# Ep2 以降：Ep1 の訳（fixes で英語のままにしたものは除く）を先に入れる
-EP1 = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'text'))
-if ROOT != os.path.dirname(EP1):
-    en = json.load(open(os.path.join(ROOT, 'text', 'en.json'), encoding='utf-8'))
-    base = json.load(open(os.path.join(EP1, 'ja.json'), encoding='utf-8'))
-    base.update(json.load(open(os.path.join(EP1, 'fixes.json'), encoding='utf-8')))
-    for k in en:
-        if k in base: out[k] = base[k]
+# Ep2 以降：前のエピソードまでの訳を先に入れる
+en = json.load(open(os.path.join(ROOT, 'text', 'en.json'), encoding='utf-8'))
+base = __import__('ep').prev_ja()
+for k in en:
+    if k in base: out[k] = base[k]
 for p in sorted(glob.glob(os.path.join(ROOT, 'work', 'chunks', 'c[0-9][0-9].json'))):
     src = json.load(open(p, encoding='utf-8'))
     q = p[:-5] + '_ja.json'
