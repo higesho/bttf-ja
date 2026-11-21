@@ -13,12 +13,18 @@ def landbs():
     """Pack 直下の .ttarch から *_english.landb を集める（名前順で先に見つかったものを使う。DLL と同じ規則）"""
     sys.path.insert(0, os.path.dirname(__file__))
     from ttarch import TTArch
+    bf = None
+    if EP == 5:                       # エピソード5はアーカイブとファイルが暗号化されている（tools/bfemu.py）
+        from bfemu import BF
+        bf = BF()
     out = {}
     for p in sorted(glob.glob(os.path.join(GAME, 'Pack', '*.ttarch')), key=lambda x: os.path.basename(x).lower()):
-        a = TTArch(p)
+        a = TTArch(p, bf.decrypt if bf else None)
         if not a.info: continue
         for name, off, sz, z in a.files:
-            if name.lower().endswith('_english.landb') and name not in out: out[name] = a.read(off, sz)
+            if name.lower().endswith('_english.landb') and name not in out:
+                d = a.read(off, sz)
+                out[name] = bf.meta(d) if bf else d
     return out
 
 def prev_ja():

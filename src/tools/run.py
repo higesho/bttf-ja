@@ -125,6 +125,13 @@ def game_hwnd():
     if not hw: raise SystemExit('game window not found')
     return hw[0]
 
+def front():
+    """ゲームは前面にいないと描画を止めることがある（別の窓が前に出たとき）。テスト中は前に出しておく"""
+    try:
+        h = game_hwnd(); u = ctypes.windll.user32
+        if u.GetForegroundWindow() != h: u.SetForegroundWindow(h)
+    except SystemExit: pass
+
 def mouse_to(x, y):
     """cursor position comes from WM_MOUSEMOVE (client coords = 1280x1024 virtual)"""
     h = game_hwnd()
@@ -138,7 +145,7 @@ def main():
     c = a[0]
     if c == 'start': start()
     elif c == 'stop': stop()
-    elif c == 'shot': shot(a[1], a[2] if len(a) > 2 else None)
+    elif c == 'shot': front(); shot(a[1], a[2] if len(a) > 2 else None)
     elif c == 'key':
         m = shm()
         for k in a[1:]: tap(m, k)
@@ -173,7 +180,7 @@ def main():
             ctypes.windll.user32.PostMessageW(h, 0x100, vk, 1); time.sleep(0.08)
             ctypes.windll.user32.PostMessageW(h, 0x101, vk, 0xc0000001); time.sleep(0.08)
     elif c == 'wait':
-        m = shm(); push(m, (6, int(a[1]))); settle(m)
+        front(); m = shm(); push(m, (6, int(a[1]))); settle(m)
     elif c == 'watch':
         m = shm(); slot = int(a[2]) if len(a) > 2 else 0
         rw = (1 if (len(a) > 3 and a[3] == 'w') else 3) | (4 << 4)

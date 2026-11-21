@@ -125,9 +125,42 @@ static int rebuild_landb(const char *name, const uint8_t *d, size_t len, Buf *ou
    mode 1 は非圧縮、mode 2 は 64KB ごとの raw deflate（ゲームの zlib で展開する） */
 typedef int (__cdecl *uncompress_t)(uint8_t *dst, uint32_t *dlen, const uint8_t *src, uint32_t slen);
 
+/* エピソード5：アーカイブのファイル一覧とチャンク、メタデータ（先頭 AA DE AF 64）が Blowfish で暗号化されている。
+   ゲーム自身の関数（thiscall）を __fastcall で呼ぶ（ecx = 鍵の表、edx は使われない） */
+typedef void (__fastcall *bfinit_t)(void *obj, void *unused);
+typedef void (__fastcall *bfdec_t)(void *obj, void *unused, uint8_t *buf, uint32_t len);
+static uint8_t g_bf[0x2000];
+static int g_bfok;
+
+static int bf_ready(void)
+{
+    if (!g_addr || !g_addr->bfinit) return 0;
+    if (!g_bfok) { ((bfinit_t)g_addr->bfinit)(g_bf, NULL); g_bfok = 1; }
+    return 1;
+}
+static void bf_dec(uint8_t *p, uint32_t n)
+{
+    n &= ~7u;
+    if (n) ((bfdec_t)g_addr->bfdec)(g_bf, NULL, p, n);
+}
+/* メタデータの暗号：魔法の 4 バイトの後を 0x100 バイトずつ。8 個目ごとに Blowfish、ほかは全バイト反転、
+   最後の半端はそのまま（exe の MetaStream 読み込みと同じ） */
+static void meta_dec(uint8_t *d, uint32_t size)
+{
+    uint32_t i, k, nb;
+    if (size < 4 || rd32(d) != 0x64afdeaa || !bf_ready()) return;
+    memcpy(d, "ERTM", 4);
+    nb = (size - 4) / 0x100;
+    for (i = 0; i < nb; i++) {
+        uint8_t *b = d + 4 + i * 0x100;
+        if (i % 8 == 0) bf_dec(b, 0x100);
+        else if (i % 0x18 != 0) for (k = 0; k < 0x100; k++) b[k] = (uint8_t)~b[k];
+    }
+}
+
 typedef struct {
     HANDLE h;
-    uint32_t mode, nchunk, csize, dataoff;
+    uint32_t mode, nchunk, csize, dataoff, enc;
     uint32_t *chunk, *cofs;          /* 圧縮チャンクの大きさとファイル内の位置 */
     int cached;                      /* 展開済みのチャンク番号 */
     uint8_t *cbuf, *zbuf;
@@ -154,8 +187,9 @@ static uint8_t *arch_read(Arch *A, uint32_t off, uint32_t size)
         if (ci >= A->nchunk) { free(out); return NULL; }
         if (A->cached != (int)ci) {
             uint32_t dl = A->csize;
-            if (!rd_at(A->h, A->dataoff + A->cofs[ci], A->zbuf, A->chunk[ci]) ||
-                ((uncompress_t)g_addr->uncompress)(A->cbuf, &dl, A->zbuf, A->chunk[ci]) != 0) { free(out); return NULL; }
+            if (!rd_at(A->h, A->dataoff + A->cofs[ci], A->zbuf, A->chunk[ci])) { free(out); return NULL; }
+            if (A->enc) bf_dec(A->zbuf, A->chunk[ci]);
+            if (((uncompress_t)g_addr->uncompress)(A->cbuf, &dl, A->zbuf, A->chunk[ci]) != 0) { free(out); return NULL; }
             A->cached = (int)ci;
         }
         n = A->csize - co;
@@ -201,7 +235,9 @@ static void read_archive(const char *path)
     A.cached = -1;
     A.h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (A.h == INVALID_HANDLE_VALUE) return;
-    if (!rd_at(A.h, 0, hd, 20) || rd32(hd) != 8 || rd32(hd + 4) != 0) goto done;   /* v8・暗号なし */
+    if (!rd_at(A.h, 0, hd, 20) || rd32(hd) != 8 || rd32(hd + 4) > 1) goto done;   /* v8 */
+    A.enc = rd32(hd + 4);
+    if (A.enc && !bf_ready()) goto done;                    /* 暗号つきはエピソード5だけ */
     A.mode = rd32(hd + 12);
     A.nchunk = rd32(hd + 16);
     pos = 20;
@@ -230,6 +266,7 @@ static void read_archive(const char *path)
         if (!A.cbuf || !A.zbuf) goto done;
     } else if (!rd_at(A.h, pos, info, infosz)) goto done;
     else pos += infosz;
+    if (A.enc) bf_dec(info, infosz);
     A.dataoff = pos;
     nd = rd32(info); p = 4;
     for (i = 0; i < nd && p + 4 <= infosz; i++) p += 4 + rd32(info + p);
@@ -247,6 +284,7 @@ static void read_archive(const char *path)
         if (!StrStrIA(name, "_english.landb") || g_nnames >= MAXF || known_name(name)) continue;
         d = arch_read(&A, off, size);
         if (!d) { dlog("read %s failed", name); continue; }
+        meta_dec(d, size);
         write_landb(name, d, size);
         free(d);
     }

@@ -94,9 +94,12 @@ static HRESULT STDMETHODCALLTYPE h_Present(IDirect3DDevice9 *d, const RECT *a, c
 
 static HRESULT STDMETHODCALLTYPE h_Reset(IDirect3DDevice9 *d, D3DPRESENT_PARAMETERS *pp)
 {
+    HRESULT hr;
     force_windowed(pp);
-    dlog("Reset %dx%d win=%d", pp->BackBufferWidth, pp->BackBufferHeight, pp->Windowed);
-    return o_Reset(d, pp);
+    hr = o_Reset(d, pp);
+    dlog("Reset %dx%d win=%d -> %08x coop %08x", pp->BackBufferWidth, pp->BackBufferHeight, pp->Windowed, hr,
+         IDirect3DDevice9_TestCooperativeLevel(d));
+    return hr;
 }
 
 static void vt_patch(void **vt, int idx, void *repl, void **orig)

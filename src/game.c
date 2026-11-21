@@ -12,6 +12,8 @@ static const GameAddr g_table[] = {
       { 0x6f73d0, 0x6f7550, 0x6f7630, 0x6f7760, 0x6f7b30, 0x6f8c10, 0x6fae10 } },
     { "BackToTheFuture104.exe", 4, 0x6643c0, 0x6f94fd, 0x6fce16, 0x763d40, 0x6f8d70, 0x4b4cb0,
       { 0x6f76f0, 0x6f7870, 0x6f7950, 0x6f7a80, 0x6f7e50, 0x6f8f30, 0x6fb130 } },
+    { "BackToTheFuture105.exe", 5, 0x663580, 0x6f8a8d, 0x6fc3a6, 0x763940, 0x6f8300, 0x4b43f0,
+      { 0x6f6c80, 0x6f6e00, 0x6f6ee0, 0x6f7010, 0x6f73e0, 0x6f84c0, 0x6fa6c0 }, 0x5ad850, 0x5ac9a0 },
 };
 const GameAddr *g_addr;
 static GameAddr g_live;   /* 実際に読み込まれた位置に直したもの（Ep3 の exe は ASLR が有効で 0x400000 以外に載る） */
@@ -31,6 +33,7 @@ void game_detect(void)
             g_live.getglyph += d; g_live.pageloop += d; g_live.bindcall += d; g_live.bind += d;
             g_live.settext += d; g_live.uncompress += d;
             for (k = 0; k < 7; k++) g_live.entry[k] += d;
+            if (g_live.bfinit) { g_live.bfinit += d; g_live.bfdec += d; }
             g_addr = &g_live;
             dlog("exe %s: known, base %08x", name, 0x400000 + d);
         }

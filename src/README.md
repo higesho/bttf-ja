@@ -20,6 +20,7 @@ dinput8.dll の代理 DLL です。どのエピソードも同じソースで、
 - `tools/extract.py` `chunk.py` `check_chunk.py` `merge.py`: 英文の取り出し、翻訳の分割と検査、訳のまとめ
 - `tools/jptext.py` `make_data.py` `make_font.py`: 訳を EUC-JP のデータにする、字のフォントを作る
 - `tools/run.py` `drag.py` `montage.py` `build.sh`: テスト用。`BTTFJP_TEST=1` で起動したゲームを、共有メモリ経由で撮影・クリック・キー入力する（前面の窓を使わない）
+- エピソード5はアーカイブ（.ttarch）とメタデータが Blowfish で暗号化されています。DLL はゲーム自身の初期化・復号の関数を呼んで読み出し（`text.c`）、組み直した .landb は暗号なしの形で一時フォルダに置きます。抽出用の `tools/bfemu.py` は、実行中のゲームから読み出したメモリイメージ（配布物には含めません）を unicorn で動かして同じ関数を使います。
 - `tools/ep.py`: エピソードの選択と作業フォルダ。`tools/sigs.py`: エピソード1のフック先の命令列を、ほかのエピソードの exe から探す
 - `tools/x86.py` `sweep.py` `mem.py` `survey.py` `hwwatch.py` `win.py`: 解析用（逆アセンブル、メモリ検索、ハードウェアブレークポイントなど）
 

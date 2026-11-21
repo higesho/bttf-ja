@@ -16,7 +16,7 @@
 | エピソード2「ゲット・タネン！」（Episode 2: Get Tannen!） | 公開中 | [BTTF_Ep2_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep2-v1.1) |
 | エピソード3「シチズン・ブラウン」（Episode 3: Citizen Brown） | 公開中 | [BTTF_Ep3_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep3-v1.1) |
 | エピソード4「ダブル・ヴィジョンズ」（Episode 4: Double Visions） | 公開中 | [BTTF_Ep4_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep4-v1.0) |
-| エピソード5「アウタタイム」（Episode 5: OUTATIME） | 予定 | |
+| エピソード5「アウタタイム」（Episode 5: OUTATIME） | 公開中 | [BTTF_Ep5_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep5-v1.0) |
 
 入れ方と外し方は、サイトの各作品のページをご覧ください。
 パッチはゲームのフォルダに DLL をひとつ置くだけで日本語になり、消せば英語に戻ります。ゲームのファイルは書き換えません。配布物には原作のプログラムやデータは入っていません。

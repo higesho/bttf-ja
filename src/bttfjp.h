@@ -33,6 +33,7 @@ typedef struct {
     uint32_t settext;       /* テキストの SetText（テスト用の記録） */
     uint32_t uncompress;    /* zlib の raw inflate（uncompress と同じ引数） */
     uint32_t entry[7];      /* 文字列を走査する 7 関数 */
+    uint32_t bfinit, bfdec; /* エピソード5：Blowfish の初期化（thiscall）と復号（thiscall buf,len）。ほかは 0 */
 } GameAddr;
 extern const GameAddr *g_addr;
 void game_detect(void);
