@@ -1,7 +1,8 @@
 import struct, sys, zlib, os
 class TTArch:
-    def __init__(self, path):
-        self.path=path; f=open(path,'rb'); self.f=f
+    def __init__(self, path, dec=None):
+        # dec: 暗号化されたアーカイブ（エピソード5）のファイル一覧を復号する関数（bfemu.BF().decrypt）
+        self.path=path; f=open(path,'rb'); self.f=f; self.dec=dec
         h=struct.unpack('<4I',f.read(16)); self.ver,self.enc,self.u2,self.mode=h
         self.chunks=[]
         if self.mode==2:
@@ -17,7 +18,7 @@ class TTArch:
             info=zlib.decompress(f.read(csz),-15)
         else:
             info=f.read(self.infosize)
-        if self.enc: info=None
+        if self.enc: info=dec(info) if dec else None
         self.info=info
         self.dataoff=f.tell()
         if info is not None: self.parse(info)
@@ -46,6 +47,7 @@ class TTArch:
         return bytes(res[:sz])
     def chunk(self,i):
         o=self.dataoff+sum(self.chunks[:i]); self.f.seek(o); d=self.f.read(self.chunks[i])
+        if self.enc and self.dec: d=self.dec(d)       # 暗号化されたアーカイブは、チャンクを復号してから展開する
         return zlib.decompress(d,-15)
 if __name__=='__main__':
     a=TTArch(sys.argv[1])

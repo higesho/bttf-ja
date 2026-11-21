@@ -1,6 +1,6 @@
 import capstone,sys,struct
 import os
-D=open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','work','dump.bin'),'rb').read()
+D=open(os.environ.get('X86DUMP',os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','work','dump.bin')),'rb').read()
 BASE=0x400000
 md=capstone.Cs(capstone.CS_ARCH_X86,capstone.CS_MODE_32); md.detail=False
 def rd(a,n): return D[a-BASE:a-BASE+n]

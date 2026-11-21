@@ -21,5 +21,10 @@ for p in sorted(glob.glob(os.path.join(ROOT, 'work', 'chunks', 'c[0-9][0-9].json
 fx = os.path.join(ROOT, 'text', 'fixes.json')
 if os.path.exists(fx):
     for k, v in json.load(open(fx, encoding='utf-8')).items(): out[k] = v
+# タイムサーキットの表示（"MAY 16 1986"、"10:23 AM"）は英語のまま（訳すと空白が変わり、ゲームが読めず日付がずれる）
+import re
+LED = re.compile(r'^([A-Z]{3} \d{1,2} \d{4}|\d{1,2}:\d\d [AP]M)$')
+for k in en:
+    if LED.match(k): out[k] = ''
 json.dump(out, open(os.path.join(ROOT, 'text', 'ja.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=0)
 print('ja.json', len(out), 'entries (chunks %d)' % n)
