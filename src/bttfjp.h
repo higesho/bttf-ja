@@ -1,4 +1,4 @@
-/* Back to the Future: The Game Ep.1 日本語化パッチ 共通宣言 */
+/* Back to the Future: The Game 日本語化パッチ 共通宣言 */
 #pragma once
 #include <windows.h>
 #include <stdint.h>
@@ -21,6 +21,22 @@ HRESULT testio_wrap_dinput(void *di);
 void dbg_init(void);
 void dbg_watch(uint32_t addr, int slot, int rw_len);
 void dbg_dump(void);
+
+/* ---- game.c：エピソードごとのアドレス ---- */
+typedef struct {
+    const char *exe;
+    int ep;
+    uint32_t getglyph;      /* Font::GetGlyph */
+    uint32_t pageloop;      /* メッシュ作成のページ数の比較 cmp ebp,[ebx+0x40] */
+    uint32_t bindcall;      /* ページのテクスチャを渡す call */
+    uint32_t bind;          /* その呼び先 */
+    uint32_t settext;       /* テキストの SetText（テスト用の記録） */
+    uint32_t uncompress;    /* zlib の raw inflate（uncompress と同じ引数） */
+    uint32_t entry[7];      /* 文字列を走査する 7 関数 */
+} GameAddr;
+extern const GameAddr *g_addr;
+void game_detect(void);
+void game_hooks_once(void);              /* main.c */
 
 /* ---- fileio.c ---- */
 void fileio_init(void);

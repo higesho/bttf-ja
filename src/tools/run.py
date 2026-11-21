@@ -13,7 +13,12 @@
 #   python tools/win.py stop             kill the game, remove the DLL from the game folder
 import sys, os, time, mmap, struct, subprocess, shutil, ctypes
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-GAME = os.path.abspath(os.path.join(ROOT, '..'))
+# エピソードは環境変数 BTTF_EP（1〜5、既定 1）で選ぶ
+EPS = {1: ('Back to the Future Ep 1', 31290), 2: ('Back to the Future Ep 2', 94500), 3: ('Back to the Future 103', 94510),
+       4: ('Back to the Future 104', 94520), 5: ('Back to the Future 105', 94530)}
+EP = int(os.environ.get('BTTF_EP', '1'))
+GAME = os.path.abspath(os.path.join(ROOT, '..', '..', EPS[EP][0]))
+EXE = 'BackToTheFuture10%d.exe' % EP
 PIDF = os.path.join(ROOT, 'work', 'pid.txt')
 SHM_SIZE = 4384
 O_WR, O_RD, O_CMD, O_REQ, O_DONE, O_PATH, O_FRAME, O_BUSY = 4, 8, 12, 4108, 4112, 4116, 4376, 4380
@@ -79,9 +84,9 @@ def shot(name, width=None):
     print(out, im.size)
 
 def start():
-    exe = os.path.join(GAME, 'BackToTheFuture101.exe')
-    open(os.path.join(GAME, 'steam_appid.txt'), 'w').write('31290')  # テスト専用（直接起動用）
-    shutil.copy(os.path.join(ROOT, 'build', 'dinput8.dll'), os.path.join(GAME, 'dinput8.dll'))
+    exe = os.path.join(GAME, EXE)
+    open(os.path.join(GAME, 'steam_appid.txt'), 'w').write(str(EPS[EP][1]))  # テスト専用（直接起動用）
+    shutil.copy(os.path.join(ROOT, 'build' if EP == 1 else 'ep%d/build' % EP, 'dinput8.dll'), os.path.join(GAME, 'dinput8.dll'))
     env = dict(os.environ)
     env['BTTFJP_TEST'] = '1'
     env['BTTFJP_LOG'] = os.path.join(ROOT, 'work', 'bttfjp.log')

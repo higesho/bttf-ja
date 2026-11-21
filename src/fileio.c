@@ -1,6 +1,7 @@
 /* ファイル API のフック：Pack フォルダに翻訳済みファイルを仮想的に置く（text.c） */
 #include "bttfjp.h"
 
+static int g_logfiles;
 static HANDLE (WINAPI *o_CreateFileA)(LPCSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
 static HANDLE (WINAPI *o_FindFirstFileA)(LPCSTR, LPWIN32_FIND_DATAA);
 static BOOL (WINAPI *o_FindNextFileA)(HANDLE, LPWIN32_FIND_DATAA);
@@ -13,13 +14,14 @@ static HANDLE WINAPI h_CreateFileA(LPCSTR n, DWORD a, DWORD s, LPSECURITY_ATTRIB
     char buf[MAX_PATH];
     const char *p = text_path(n, buf);
     HANDLE h = o_CreateFileA(p, a, s, sa, d, f, t);
-    if (g_test && p != n) dlog("CreateFileA %s -> %s %p", n, p, h);
+    if (g_test && (p != n || g_logfiles)) dlog("CreateFileA %s -> %s %p", n, p, h);
     return h;
 }
 static HANDLE WINAPI h_FindFirstFileA(LPCSTR n, LPWIN32_FIND_DATAA fd)
 {
     HANDLE h = text_findfirst(n, fd);
     if (!h) h = o_FindFirstFileA(n, fd);
+    if (g_test && g_logfiles) dlog("FindFirstFileA %s -> %p", n, h);
     return h;
 }
 static BOOL WINAPI h_FindNextFileA(HANDLE h, LPWIN32_FIND_DATAA fd)
@@ -45,6 +47,7 @@ static BOOL WINAPI h_GetFileAttributesExA(LPCSTR n, GET_FILEEX_INFO_LEVELS l, LP
 
 void fileio_init(void)
 {
+    g_logfiles = GetEnvironmentVariableA("BTTFJP_LOGFILES", NULL, 0) > 0;
     o_CreateFileA = iat_hook("KERNEL32.dll", "CreateFileA", (void *)h_CreateFileA);
     o_FindFirstFileA = iat_hook("KERNEL32.dll", "FindFirstFileA", (void *)h_FindFirstFileA);
     o_FindNextFileA = iat_hook("KERNEL32.dll", "FindNextFileA", (void *)h_FindNextFileA);

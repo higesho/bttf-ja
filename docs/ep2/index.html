@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エピソード2「ゲット・タネン！」日本語化パッチ — バック・トゥ・ザ・フューチャー ザ・ゲーム 日本語化プロジェクト</title>
+<meta name="description" content="Steam 版 Back to the Future: The Game – Episode 2 を日本語で遊べるようにする、非公式のファンメイド日本語化パッチ。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="バック・トゥ・ザ・フューチャー ザ・ゲーム エピソード2 日本語化パッチ">
+<meta property="og:description" content="Steam 版 Back to the Future: The Game – Episode 2 を日本語で遊べるようにする、非公式のファンメイド日本語化パッチ。">
+<meta property="og:url" content="https://higesho.github.io/bttf-ja/ep2/">
+<meta property="og:image" content="https://higesho.github.io/bttf-ja/ep2/img/choice.png">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="jpn" id="jpn"><div class="jpn-band"><a class="jpn-home" href="https://higesho.github.io/ja/">日本語化プロジェクト</a></div></header>
+<script src="https://higesho.github.io/ja/nav.js"></script>
+
+<main class="band">
+<section class="hero">
+<p class="sub">Back to the Future: The Game – Episode 2: Get Tannen!</p>
+<h1>エピソード2「ゲット・タネン！」日本語化パッチ</h1>
+<p class="tag">Steam 版の「Back to the Future: The Game」エピソード2を日本語で遊べるようにする、非公式のファンメイド日本語化パッチです。
+会話の字幕と選択肢、調べた物の名前、ヒントと目標、これまでのあらすじ、スタッフの名前、メニューと設定まで、ゲームの中の文章を日本語にしています。
+ゲームのフォルダにファイルをひとつ置くだけで日本語になり、消せば英語に戻ります。</p>
+<p><a class="dl" href="https://github.com/higesho/bttf-ja/releases/tag/ep2-v1.0">ダウンロード（GitHub）</a></p>
+</section>
+
+<div class="text">
+<h2>どんなゲーム？</h2>
+<p>「Back to the Future: The Game」は、2010年にテルテール・ゲームズが発売した、映画「バック・トゥ・ザ・フューチャー」三部作の続きを描くアドベンチャーゲームです。全 5 エピソードのうち、これは 2 番目のエピソードです。</p>
+<p>エピソード1の事件を片づけて1986年へ帰ろうとしたマーティとドク。ところが、マーティの写真から父親の姿が消えはじめます。祖父アーサーがギャングのキッド・タネンに狙われ、歴史が書き換わってしまったのです。
+マーティはふたたび1931年のヒルバレーに戻り、タネンの「もぐり酒場」に乗り込みます。歌手のトリクシー、酒に溺れた警官パーカーたちと話し、物を調べ、道具を使って、タネンを捕まえる手立てを探していきます。</p>
+</div>
+
+<h2>画面</h2>
+<div class="shots">
+  <figure><img src="img/title.png" alt="タイトル画面。メニューが日本語で出ている" loading="lazy"><figcaption>タイトル</figcaption></figure>
+  <figure><img src="img/start.png" alt="ゲームを始める前の、目標の通知を表示するかの確認" loading="lazy"><figcaption>はじめる前の確認</figcaption></figure>
+  <figure><img src="img/card.png" alt="エピソード2の題名「ゲット・タネン」が日本語で出ている画面" loading="lazy"><figcaption>エピソードの題名</figcaption></figure>
+  <figure><img src="img/subtitle.png" alt="ドクが新聞の記事を読み上げる字幕" loading="lazy"><figcaption>字幕</figcaption></figure>
+  <figure><img src="img/talk.png" alt="デロリアンの中で話すドクとマーティ" loading="lazy"><figcaption>会話</figcaption></figure>
+  <figure><img src="img/hint.png" alt="ヒントと目標の画面" loading="lazy"><figcaption>ヒントと目標</figcaption></figure>
+  <figure><img src="img/settings.png" alt="字幕とヘルプの設定画面" loading="lazy"><figcaption>設定</figcaption></figure>
+</div>
+
+<div class="text">
+<h2>入れ方</h2>
+<ol>
+<li>ダウンロードした <code>BTTF_Ep2_JP.zip</code> の中の <code>dinput8.dll</code> を、ゲームのフォルダ（<code>BackToTheFuture102.exe</code> があるフォルダ）に置きます。Steam のライブラリでゲームを右クリックし、「管理」→「ローカルファイルを閲覧」で開くフォルダです。</li>
+<li>いつもどおり Steam から起動します。</li>
+<li>初めて起動したとき、メニューの下に国旗が 3 つ並んだ言語選びの画面（英語）が出ることがあります。アメリカの旗を選ぶと日本語のメニューになります。選んだ言語は次からも使われます。</li>
+<li>字幕が出ないときは、メニューの「ヘルプと設定」→「字幕とヘルプ」で「字幕」をオンにしてください。</li>
+</ol>
+<p>ゲームのファイルは書き換えません。日本語の文章のファイルは起動のたびに一時フォルダ（<code>%TEMP%\BTTFJP</code>）に作られます。</p>
+
+<h2>外し方</h2>
+<ul>
+<li>ゲームのフォルダから <code>dinput8.dll</code> を消します。セーブデータはそのまま英語版で続きから遊べます。</li>
+</ul>
+
+<h2>遊ぶときの注意</h2>
+<ul>
+<li>絵として描かれた文字（看板、新聞の見出し、タイムサーキットの表示など）は英語のままです。</li>
+<li>字幕は声に合わせて少しずつ表示されます。長いせりふは 2 行ずつ切り替わります。</li>
+<li>Steam 版（BackToTheFuture102.exe）に合わせてあります。中身が違うときは日本語化せずに英語のまま動きます。</li>
+<li>ほかのエピソードには使えません。エピソード1のパッチは<a href="../ep1/">エピソード1のページ</a>にあります。エピソード3以降は、できしだい公開します。</li>
+</ul>
+
+<h2>ご意見・誤訳の報告</h2>
+<p>誤訳や不自然な訳に気づいたら、<a href="https://github.com/higesho/bttf-ja/issues">GitHub の Issues</a> で教えてください。</p>
+
+<h2>クレジット</h2>
+<ul>
+<li>日本語の表示に、Noto Sans JP（Copyright 2014-2021 Adobe、SIL Open Font License 1.1）から作った字を使っています。ライセンスは配布物の <code>OFL.txt</code> にあります。</li>
+<li>このパッチの使用は自己責任でお願いします。</li>
+<li>配布物には原作のプログラムやデータは入っていません。</li>
+</ul>
+</div>
+</main>
+
+<footer class="foot"><div class="band">
+  <p>非公式のファン翻訳です。開発元・販売元とは関係ありません。</p>
+  <p>Back to the Future は Universal City Studios と U-Drive Joint Venture の商標です。ゲームの画像・文章の権利は原作の権利者にあります。</p>
+</div></footer>
+</body>
+</html>

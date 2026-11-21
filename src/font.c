@@ -6,10 +6,13 @@
 #include <d3d9.h>
 #include <stdio.h>
 
-#define A_GETGLYPH 0x65b710
-#define A_PAGELOOP 0x6eccbd      /* cmp ebp,[ebx+0x40] → cmp ebp,4（メッシュ作成のページ数） */
-#define A_BINDCALL 0x6f05c6      /* call 0x75b190（ページのテクスチャを渡す） */
-#define A_BIND     0x75b190
+/* アドレスはエピソードごと（game.c の表） */
+#define A_GETGLYPH (g_addr->getglyph)
+#define A_PAGELOOP (g_addr->pageloop)    /* cmp ebp,[ebx+0x40] → cmp ebp,4（メッシュ作成のページ数） */
+#define A_BINDCALL (g_addr->bindcall)    /* ページのテクスチャを渡す call */
+#define A_BIND     (g_addr->bind)
+#define A_SETTEXT  (g_addr->settext)
+static uint32_t g_bind_fn;               /* bind_stub の飛び先 */
 
 typedef struct { int page; float u0, u1, v0, v1, w, h; } Glyph;   /* Font::GlyphInfo 28 バイト */
 #define F_HEIGHT(f)  (*(float *)((uint8_t *)(f) + 0x20))
@@ -311,8 +314,18 @@ void *__cdecl jp_bind(void *font, uint8_t *tex)
     if (!f->fake[jp]) {
         f->fake[jp] = (uint8_t *)malloc(T3TEX_SIZE);
         memcpy(f->fake[jp], F_PAGES(font), T3TEX_SIZE);
-        *(int *)(f->fake[jp] + 0x64) = AT_W; *(int *)(f->fake[jp] + 0x68) = AT_H;
-        *(int *)(f->fake[jp] + 0x6c) = AT_W; *(int *)(f->fake[jp] + 0x70) = AT_H;
+        {   /* 元のページの幅・高さが入っている欄（版によって位置が違う）をアトラスの寸法にする */
+            IDirect3DTexture9 *t0 = *(IDirect3DTexture9 **)(F_PAGES(font) + 0x14);
+            D3DSURFACE_DESC dd;
+            int off;
+            if (t0 && SUCCEEDED(t0->lpVtbl->GetLevelDesc(t0, 0, &dd)))
+                for (off = 0x18; off + 8 <= T3TEX_SIZE; off += 4)
+                    if (*(UINT *)(f->fake[jp] + off) == dd.Width && *(UINT *)(f->fake[jp] + off + 4) == dd.Height) {
+                        *(int *)(f->fake[jp] + off) = AT_W; *(int *)(f->fake[jp] + off + 4) = AT_H;
+                        if (g_test) dlog("fake tex: size at +0x%x (%ux%u)", off, dd.Width, dd.Height);
+                        off += 4;
+                    }
+        }
     }
     *(void **)(f->fake[jp] + 0x14) = g_tex[jp];
     return f->fake[jp];
@@ -328,13 +341,11 @@ static __declspec(naked) void bind_stub(void)
         add esp, 8
         pop ecx
         mov [esp + 4], eax
-        mov eax, A_BIND
-        jmp eax
+        jmp dword ptr [g_bind_fn]
     }
 }
 
 /* ---------- 文字列を走査する 7 関数の入口で状態を戻す ---------- */
-static const uint32_t g_entry[7] = { 0x6eaec0, 0x6eb040, 0x6eb120, 0x6eb250, 0x6eb620, 0x6ec700, 0x6ee8f0 };
 static const uint8_t g_entry_len[7] = { 5, 7, 7, 6, 6, 6, 7 };
 static const uint8_t g_entry_sig[7][2] = { {0x83,0xec}, {0x83,0xec}, {0x83,0xec}, {0x55,0x8b}, {0x55,0x8b}, {0x55,0x8b}, {0x6a,0xff} };
 
@@ -344,7 +355,7 @@ static int hook_entries(void)
     int i;
     if (!mem) return 0;
     for (i = 0; i < 7; i++) {
-        uint32_t fn = g_entry[i];
+        uint32_t fn = g_addr->entry[i];
         int n = g_entry_len[i];
         uint8_t *stub = p;
         if (memcmp((void *)fn, g_entry_sig[i], 2)) { dlog("entry %08x mismatch", fn); return 0; }
@@ -364,7 +375,6 @@ static int hook_entries(void)
 }
 
 /* ---------- テスト用：英語のまま表示された文字列を記録（SetText 0x6ec540） ---------- */
-#define A_SETTEXT 0x6ec540
 int g_font_state;                       /* 0 未初期化 / 1 動作中 / -1 使えない */
 static int g_logall;
 static void __cdecl log_settext(const uint8_t *str)
@@ -418,6 +428,7 @@ void font_init(void)
     static const uint8_t sig_loop[3] = { 0x3b, 0x6b, 0x40 }, new_loop[3] = { 0x83, 0xfd, 0x04 };
     int i;
     InitializeCriticalSection(&g_cs);
+    if (!g_addr) { dlog("font_init: unknown exe"); g_font_state = -1; return; }
     if (g_test && GetEnvironmentVariableA("BTTFJP_NOFONT", NULL, 0) > 0) { dlog("font_init: skipped (test)"); return; }
     for (i = 0; i < NCODE; i++) g_cell[i] = -1;
     if (memcmp((void *)A_GETGLYPH, sig_gg, 10) || memcmp((void *)A_PAGELOOP, sig_loop, 3) || *(uint8_t *)A_BINDCALL != 0xe8 ||
@@ -426,6 +437,7 @@ void font_init(void)
         g_font_state = -1;                  /* 訳の差し替えもしない（英語のまま） */
         return;
     }
+    g_bind_fn = A_BIND;
     gdi_init();
     if (!hook_entries()) { g_font_state = -1; return; }
     patch_jmp(A_GETGLYPH, (void *)getglyph_stub);

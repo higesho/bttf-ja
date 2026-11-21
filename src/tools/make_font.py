@@ -1,9 +1,11 @@
+import sys
 # Noto Sans JP（SIL OFL）を太さ 500 の静的フォントにし、訳で使う文字だけに絞って build/font.ttf（資源 BTTFJP/2）を作る
 import os, json
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 from fontTools import subset
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); ROOT = __import__('ep').EPD   # エピソードの作業フォルダ
 ja = json.load(open(os.path.join(ROOT, 'text', 'ja.json'), encoding='utf-8'))
 chars = set(''.join(ja.values()))
 chars |= set('、。！？「」『』（）…─〜・ー：；')

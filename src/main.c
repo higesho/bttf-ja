@@ -158,6 +158,11 @@ static HRESULT STDMETHODCALLTYPE h_CreateDevice(IDirect3D9 *d3d, UINT ad, D3DDEV
 
 void game_hooks_init(void);
 static int g_game_hooked;
+/* ゲームのフックを一度だけ入れる（.text の復号後、ゲーム自身の呼び出しの中から呼ぶこと） */
+void game_hooks_once(void)
+{
+    if (!g_game_hooked) { g_game_hooked = 1; game_hooks_init(); }
+}
 static IDirect3D9 *(WINAPI *o_Direct3DCreate9)(UINT);
 static IDirect3D9 *WINAPI h_Direct3DCreate9(UINT v)
 {
@@ -196,6 +201,7 @@ static void init(HMODULE self)
     if (GetEnvironmentVariableA("BTTFJP_TEST", buf, sizeof buf) && buf[0] == '1') g_test = 1;
     if (GetEnvironmentVariableA("BTTFJP_LOG", buf, sizeof buf)) g_log = fopen(buf, "w");
     dlog("bttfjp start test=%d", g_test);
+    game_detect();
     o_Direct3DCreate9 = iat_hook("d3d9.dll", "Direct3DCreate9", (void *)h_Direct3DCreate9);
     fileio_init();
     if (g_test) {

@@ -1,6 +1,7 @@
+import os
 import ctypes,ctypes.wintypes as W,subprocess,re
 k=ctypes.windll.kernel32
-def pidof(name='BackToTheFuture101'):
+def pidof(name='BackToTheFuture10'+os.environ.get('BTTF_EP','1')):
     out=subprocess.check_output(['powershell','-NoProfile','(Get-Process %s).Id'%name]).split()
     return int(out[0])
 pid=pidof()

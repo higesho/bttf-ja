@@ -13,7 +13,7 @@
 | 作品 | 状態 | ダウンロード |
 |---|---|---|
 | エピソード1「イッツ・アバウト・タイム」（Episode 1: It's About Time） | 公開中 | [BTTF_Ep1_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep1-v1.0) |
-| エピソード2「ゲット・タネン！」（Episode 2: Get Tannen!） | 予定 | |
+| エピソード2「ゲット・タネン！」（Episode 2: Get Tannen!） | 公開中 | [BTTF_Ep2_JP.zip](https://github.com/higesho/bttf-ja/releases/tag/ep2-v1.0) |
 | エピソード3「シチズン・ブラウン」（Episode 3: Citizen Brown） | 予定 | |
 | エピソード4「ダブル・ヴィジョンズ」（Episode 4: Double Visions） | 予定 | |
 | エピソード5「アウタタイム」（Episode 5: OUTATIME） | 予定 | |
@@ -28,5 +28,5 @@
 ## クレジット・権利
 
 - 日本語の表示に、Noto Sans JP（Copyright 2014-2021 Adobe、SIL Open Font License 1.1）から作った字を使っています。
-- 自作のプログラムのソースは `src/` にあります（MIT ライセンス、`LICENSE`）。
+- 自作のプログラムのソースは `src/` にあります（全エピソード共通、MIT ライセンス、`LICENSE`）。
 - Back to the Future は Universal City Studios と U-Drive Joint Venture の商標です。ゲームの画像・文章の権利は原作の権利者にあります。

@@ -120,59 +120,163 @@ static int rebuild_landb(const char *name, const uint8_t *d, size_t len, Buf *ou
     return 1;
 }
 
-/* ---------- 0_dlog.ttarch を読む（v8・非圧縮） ---------- */
-static void build_all(void)
-{
-    char path[MAX_PATH];
+/* ---------- Pack\*.ttarch（v8）から *_english.landb を読む ----------
+   名前順に見て、同じ名前は先に見つけたものを使う（tools/ep.py と同じ規則）。
+   mode 1 は非圧縮、mode 2 は 64KB ごとの raw deflate（ゲームの zlib で展開する） */
+typedef int (__cdecl *uncompress_t)(uint8_t *dst, uint32_t *dlen, const uint8_t *src, uint32_t slen);
+
+typedef struct {
     HANDLE h;
-    DWORD got, sz;
-    uint8_t *a = NULL, *info;
-    uint32_t mode, infosz, p, nd, nf, i, dataoff;
-    sprintf(path, "%s\\0_dlog.ttarch", g_pack);
-    h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-    if (h == INVALID_HANDLE_VALUE) { dlog("open %s failed", path); return; }
-    sz = GetFileSize(h, NULL);
-    a = (uint8_t *)malloc(sz);
-    if (!a || !ReadFile(h, a, sz, &got, NULL) || got != sz) { CloseHandle(h); free(a); return; }
-    CloseHandle(h);
-    mode = rd32(a + 12);
-    if (rd32(a) != 8 || rd32(a + 4) != 0 || mode != 1 || rd32(a + 16) != 0) { dlog("0_dlog.ttarch: unsupported"); free(a); return; }
-    infosz = *(uint32_t *)(a + 0x2d);
-    info = a + 0x31;
-    dataoff = 0x31 + infosz;
-    p = 0;
+    uint32_t mode, nchunk, csize, dataoff;
+    uint32_t *chunk, *cofs;          /* 圧縮チャンクの大きさとファイル内の位置 */
+    int cached;                      /* 展開済みのチャンク番号 */
+    uint8_t *cbuf, *zbuf;
+} Arch;
+
+static int rd_at(HANDLE h, uint32_t off, void *buf, uint32_t n)
+{
+    DWORD got;
+    LARGE_INTEGER li; li.QuadPart = off;
+    return SetFilePointerEx(h, li, NULL, FILE_BEGIN) && ReadFile(h, buf, n, &got, NULL) && got == n;
+}
+
+static uint8_t *arch_read(Arch *A, uint32_t off, uint32_t size)
+{
+    uint8_t *out = (uint8_t *)malloc(size ? size : 1);
+    uint32_t done = 0;
+    if (!out) return NULL;
+    if (A->mode != 2) {
+        if (!rd_at(A->h, A->dataoff + off, out, size)) { free(out); return NULL; }
+        return out;
+    }
+    while (done < size) {
+        uint32_t pos = off + done, ci = pos / A->csize, co = pos % A->csize, n;
+        if (ci >= A->nchunk) { free(out); return NULL; }
+        if (A->cached != (int)ci) {
+            uint32_t dl = A->csize;
+            if (!rd_at(A->h, A->dataoff + A->cofs[ci], A->zbuf, A->chunk[ci]) ||
+                ((uncompress_t)g_addr->uncompress)(A->cbuf, &dl, A->zbuf, A->chunk[ci]) != 0) { free(out); return NULL; }
+            A->cached = (int)ci;
+        }
+        n = A->csize - co;
+        if (n > size - done) n = size - done;
+        memcpy(out + done, A->cbuf + co, n);
+        done += n;
+    }
+    return out;
+}
+
+static void write_landb(const char *name, const uint8_t *d, uint32_t size)
+{
+    Buf out = { 0 };
+    int ntr = 0;
+    DWORD got;
+    if (rebuild_landb(name, d, size, &out, &ntr)) {
+        char dst[MAX_PATH];
+        HANDLE w;
+        sprintf(dst, "%s\\%s", g_tmp, name);
+        w = CreateFileA(dst, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+        if (w != INVALID_HANDLE_VALUE) {
+            WriteFile(w, out.p, (DWORD)out.n, &got, NULL);
+            CloseHandle(w);
+            lstrcpynA(g_names[g_nnames++], name, 64);
+        }
+        if (g_test) dlog("landb %s: %d translated", name, ntr);
+    } else dlog("landb %s: parse error", name);
+    free(out.p);
+}
+
+static int known_name(const char *name)
+{
+    int i;
+    for (i = 0; i < g_nnames; i++) if (!_stricmp(g_names[i], name)) return 1;
+    return 0;
+}
+
+static void read_archive(const char *path)
+{
+    Arch A = { 0 };
+    uint8_t hd[64], *info = NULL;
+    uint32_t pos, infosz, p, nd, nf, i, k;
+    A.cached = -1;
+    A.h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    if (A.h == INVALID_HANDLE_VALUE) return;
+    if (!rd_at(A.h, 0, hd, 20) || rd32(hd) != 8 || rd32(hd + 4) != 0) goto done;   /* v8・暗号なし */
+    A.mode = rd32(hd + 12);
+    A.nchunk = rd32(hd + 16);
+    pos = 20;
+    if (A.mode == 2) {
+        if (A.nchunk == 0 || A.nchunk > 1000000) goto done;
+        A.chunk = (uint32_t *)malloc(A.nchunk * 4); A.cofs = (uint32_t *)malloc(A.nchunk * 4);
+        if (!A.chunk || !A.cofs || !rd_at(A.h, pos, A.chunk, A.nchunk * 4)) goto done;
+        pos += A.nchunk * 4;
+    } else if (A.nchunk != 0) goto done;
+    if (!rd_at(A.h, pos, hd, 29)) goto done;                  /* datasize,x1..x4,chunksz / flag / infosize */
+    A.csize = rd32(hd + 20); if (A.csize < 0x1000) A.csize *= 1024;
+    infosz = rd32(hd + 25);
+    pos += 29;
+    if (infosz == 0 || infosz > 64u << 20) goto done;
+    info = (uint8_t *)malloc(infosz);
+    if (!info) goto done;
+    if (A.mode == 2) {
+        uint32_t csz, dl = infosz;
+        uint8_t *z;
+        if (!rd_at(A.h, pos, &csz, 4) || csz > 64u << 20 || !(z = (uint8_t *)malloc(csz))) goto done;
+        if (!rd_at(A.h, pos + 4, z, csz) || ((uncompress_t)g_addr->uncompress)(info, &dl, z, csz) != 0 || dl != infosz) { free(z); goto done; }
+        free(z);
+        pos += 4 + csz;
+        for (k = 0, p = 0; k < A.nchunk; k++) { A.cofs[k] = p; p += A.chunk[k]; }
+        A.cbuf = (uint8_t *)malloc(A.csize); A.zbuf = (uint8_t *)malloc(A.csize + 0x10000);
+        if (!A.cbuf || !A.zbuf) goto done;
+    } else if (!rd_at(A.h, pos, info, infosz)) goto done;
+    else pos += infosz;
+    A.dataoff = pos;
     nd = rd32(info); p = 4;
-    for (i = 0; i < nd; i++) p += 4 + rd32(info + p);
+    for (i = 0; i < nd && p + 4 <= infosz; i++) p += 4 + rd32(info + p);
+    if (p + 4 > infosz) goto done;
     nf = rd32(info + p); p += 4;
-    CreateDirectoryA(g_tmp, NULL);
-    for (i = 0; i < nf; i++) {
+    for (i = 0; i < nf && p + 4 <= infosz; i++) {
         uint32_t nl = rd32(info + p), off, size;
         char name[MAX_PATH];
-        if (nl >= sizeof name) break;
+        uint8_t *d;
+        if (nl >= sizeof name || p + 4 + nl + 12 > infosz) break;
         memcpy(name, info + p + 4, nl); name[nl] = 0;
         p += 4 + nl;
         off = rd32(info + p + 4); size = rd32(info + p + 8);
         p += 12;
-        if (!StrStrIA(name, "_english.landb") || g_nnames >= MAXF || dataoff + off + size > sz) continue;
-        {
-            Buf out = { 0 };
-            int ntr = 0;
-            if (rebuild_landb(name, a + dataoff + off, size, &out, &ntr)) {
-                char dst[MAX_PATH];
-                HANDLE w;
-                sprintf(dst, "%s\\%s", g_tmp, name);
-                w = CreateFileA(dst, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
-                if (w != INVALID_HANDLE_VALUE) {
-                    WriteFile(w, out.p, (DWORD)out.n, &got, NULL);
-                    CloseHandle(w);
-                    lstrcpynA(g_names[g_nnames++], name, 64);
-                }
-                if (g_test) dlog("landb %s: %d translated", name, ntr);
-            } else dlog("landb %s: parse error", name);
-            free(out.p);
-        }
+        if (!StrStrIA(name, "_english.landb") || g_nnames >= MAXF || known_name(name)) continue;
+        d = arch_read(&A, off, size);
+        if (!d) { dlog("read %s failed", name); continue; }
+        write_landb(name, d, size);
+        free(d);
     }
-    free(a);
+done:
+    free(info); free(A.chunk); free(A.cofs); free(A.cbuf); free(A.zbuf);
+    CloseHandle(A.h);
+}
+
+static int cmp_name(const void *a, const void *b) { return _stricmp((const char *)a, (const char *)b); }
+
+static void build_all(void)
+{
+    static char names[64][MAX_PATH];
+    char pat[MAX_PATH], path[MAX_PATH];
+    WIN32_FIND_DATAA fd;
+    HANDLE h;
+    int n = 0, i;
+    CreateDirectoryA(g_tmp, NULL);
+    sprintf(pat, "%s\\*.ttarch", g_pack);
+    h = FindFirstFileA(pat, &fd);
+    if (h == INVALID_HANDLE_VALUE) return;
+    do if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && n < 64) lstrcpynA(names[n++], fd.cFileName, MAX_PATH);
+    while (FindNextFileA(h, &fd));
+    FindClose(h);
+    qsort(names, n, MAX_PATH, cmp_name);
+    for (i = 0; i < n; i++) {
+        sprintf(path, "%s\\%s", g_pack, names[i]);
+        read_archive(path);
+    }
+    dlog("landb files: %d", g_nnames);
 }
 
 static void ensure_ready(void)
@@ -185,6 +289,13 @@ static void ensure_ready(void)
     if (s) strcpy(s, "\\Pack");
     GetTempPathA(MAX_PATH, g_tmp);
     strcat(g_tmp, "BTTFJP");
+}
+
+static void build_once(void)
+{
+    static int done;
+    if (done) return;
+    done = 1;
     if (g_test && GetEnvironmentVariableA("BTTFJP_NOTEXT", NULL, 0) > 0) return;   /* テスト用：英語のまま */
     tr_load();
     if (g_tr) build_all();
@@ -198,9 +309,13 @@ static int redirect(const char *path, char *out)
     int i;
     if (!path || g_font_state < 0) return 0;     /* 字が出せないなら英語のまま */
     ensure_ready();
-    if (!g_nnames) return 0;
     n = strlen(g_pack);
     if (_strnicmp(path, g_pack, n) || (path[n] != '\\' && path[n] != '/')) return 0;
+    /* エンジンは Direct3D より前に Pack を調べる。ここはゲーム自身の呼び出し（.text 復号済み）なので、ここでフックを済ませる */
+    if (g_font_state == 0) game_hooks_once();
+    if (g_font_state != 1) return 0;
+    build_once();
+    if (!g_nnames) return 0;
     name = path + n + 1;
     if (strchr(name, '\\') || strchr(name, '/')) return 0;
     if (strchr(name, '*') || strchr(name, '?')) { sprintf(out, "%s\\%s", g_tmp, name); return 2; }
