@@ -1,4 +1,4 @@
-/* Back to the Future: The Game Ep.1 日本語化パッチ：入口、パッチ補助、テスト用 D3D9 フック */
+/* Back to the Future: The Game 日本語化パッチ：入口、パッチ補助、D3D9 フック（試験版はテスト用の処理も） */
 #include "bttfjp.h"
 #include <stdio.h>
 #include <stdarg.h>
@@ -6,10 +6,11 @@
 
 void proxy_init(void);
 HRESULT WINAPI real_DirectInput8Create(HINSTANCE h, DWORD v, REFIID r, LPVOID *o, LPUNKNOWN u);
-extern LONG g_curx, g_cury;
-
-int g_test;
 HMODULE g_self;
+
+#ifdef BTTFJP_TEST
+extern LONG g_curx, g_cury;
+int g_test;
 static FILE *g_log;
 static CRITICAL_SECTION g_logcs;
 
@@ -25,6 +26,7 @@ void dlog(const char *fmt, ...)
     fflush(g_log);
     LeaveCriticalSection(&g_logcs);
 }
+#endif
 
 void patch_bytes(uint32_t at, const void *b, int n)
 {
@@ -72,33 +74,41 @@ void *iat_hook(const char *dll, const char *func, void *repl)
     return NULL;
 }
 
-/* ---------- テストモード：窓モード強制・バックバッファ撮影 ---------- */
+/* ---------- D3D9 フック：フォントのテクスチャの用意と転送（試験版は窓モード強制・バックバッファ撮影も） ---------- */
 static HRESULT (STDMETHODCALLTYPE *o_CreateDevice)(IDirect3D9 *, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS *, IDirect3DDevice9 **);
 static HRESULT (STDMETHODCALLTYPE *o_Reset)(IDirect3DDevice9 *, D3DPRESENT_PARAMETERS *);
 static HRESULT (STDMETHODCALLTYPE *o_Present)(IDirect3DDevice9 *, const RECT *, const RECT *, HWND, const RGNDATA *);
-HWND g_hwnd;
 
+#ifdef BTTFJP_TEST
+HWND g_hwnd;
 static void force_windowed(D3DPRESENT_PARAMETERS *pp)
 {
     if (!g_test) return;
     pp->Windowed = TRUE;
     pp->FullScreen_RefreshRateInHz = 0;
 }
+#endif
 
 static HRESULT STDMETHODCALLTYPE h_Present(IDirect3DDevice9 *d, const RECT *a, const RECT *b, HWND w, const RGNDATA *r)
 {
     font_upload();
+#ifdef BTTFJP_TEST
     if (g_test) testio_present(d);
+#endif
     return o_Present(d, a, b, w, r);
 }
 
 static HRESULT STDMETHODCALLTYPE h_Reset(IDirect3DDevice9 *d, D3DPRESENT_PARAMETERS *pp)
 {
     HRESULT hr;
+#ifdef BTTFJP_TEST
     force_windowed(pp);
+#endif
     hr = o_Reset(d, pp);
+#ifdef BTTFJP_TEST
     dlog("Reset %dx%d win=%d -> %08x coop %08x", pp->BackBufferWidth, pp->BackBufferHeight, pp->Windowed, hr,
          IDirect3DDevice9_TestCooperativeLevel(d));
+#endif
     return hr;
 }
 
@@ -125,6 +135,7 @@ static DWORD WINAPI watch_thread(LPVOID p)
     }
 }
 
+#ifdef BTTFJP_TEST
 /* テスト時：前面にいなくても止まらないよう、非アクティブ化の通知を握りつぶす */
 static WNDPROC g_oldproc;
 static LRESULT CALLBACK test_wndproc(HWND h, UINT m, WPARAM wp, LPARAM lp)
@@ -140,14 +151,17 @@ static LRESULT CALLBACK test_wndproc(HWND h, UINT m, WPARAM wp, LPARAM lp)
 static HWND WINAPI h_GetForegroundWindow(void) { return g_hwnd ? g_hwnd : GetForegroundWindow(); }
 static HWND WINAPI h_GetActiveWindow(void) { return g_hwnd ? g_hwnd : GetActiveWindow(); }
 static HWND WINAPI h_GetFocus(void) { return g_hwnd ? g_hwnd : GetFocus(); }
+#endif
 
 static HRESULT STDMETHODCALLTYPE h_CreateDevice(IDirect3D9 *d3d, UINT ad, D3DDEVTYPE t, HWND w, DWORD fl, D3DPRESENT_PARAMETERS *pp, IDirect3DDevice9 **out)
 {
     HRESULT hr;
+#ifdef BTTFJP_TEST
     force_windowed(pp);
     g_hwnd = w;
     if (g_test && !g_oldproc) g_oldproc = (WNDPROC)SetWindowLongPtrA(w, GWLP_WNDPROC, (LONG_PTR)test_wndproc);
     dlog("CreateDevice %dx%d fmt %d win=%d hwnd=%p", pp->BackBufferWidth, pp->BackBufferHeight, pp->BackBufferFormat, pp->Windowed, w);
+#endif
     hr = o_CreateDevice(d3d, ad, t, w, fl, pp, out);
     if (SUCCEEDED(hr)) {
         void **vt = *(void ***)*out;
@@ -175,6 +189,7 @@ static IDirect3D9 *WINAPI h_Direct3DCreate9(UINT v)
     return d;
 }
 
+#ifdef BTTFJP_TEST
 /* テスト時：カーソル位置はテスト側から与える（本物のマウスは無視） */
 static BOOL WINAPI h_GetCursorPos(POINT *p)
 {
@@ -187,26 +202,34 @@ static BOOL WINAPI h_GetCursorPos(POINT *p)
 }
 static BOOL WINAPI h_ClipCursor(const RECT *r) { (void)r; return TRUE; }
 static BOOL WINAPI h_SetCursorPos(int x, int y) { (void)x; (void)y; return TRUE; }
+#endif
 
 HRESULT WINAPI p_DirectInput8Create(HINSTANCE h, DWORD v, REFIID r, LPVOID *o, LPUNKNOWN u)
 {
     HRESULT hr = real_DirectInput8Create(h, v, r, o, u);
     if (!g_game_hooked) { g_game_hooked = 1; game_hooks_init(); }
+#ifdef BTTFJP_TEST
     if (g_test && SUCCEEDED(hr)) testio_wrap_dinput(*o);
+#endif
     return hr;
 }
 
 static void init(HMODULE self)
 {
+#ifdef BTTFJP_TEST
     char buf[MAX_PATH];
+#endif
     (void)self;
+#ifdef BTTFJP_TEST
     InitializeCriticalSection(&g_logcs);
     if (GetEnvironmentVariableA("BTTFJP_TEST", buf, sizeof buf) && buf[0] == '1') g_test = 1;
     if (GetEnvironmentVariableA("BTTFJP_LOG", buf, sizeof buf)) g_log = fopen(buf, "w");
     dlog("bttfjp start test=%d", g_test);
+#endif
     game_detect();
     o_Direct3DCreate9 = iat_hook("d3d9.dll", "Direct3DCreate9", (void *)h_Direct3DCreate9);
     fileio_init();
+#ifdef BTTFJP_TEST
     if (g_test) {
         iat_hook("USER32.dll", "GetCursorPos", (void *)h_GetCursorPos);
         iat_hook("USER32.dll", "ClipCursor", (void *)h_ClipCursor);
@@ -217,6 +240,7 @@ static void init(HMODULE self)
         dbg_init();
         testio_init();
     }
+#endif
 }
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)

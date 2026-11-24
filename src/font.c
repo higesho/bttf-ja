@@ -322,7 +322,9 @@ void *__cdecl jp_bind(void *font, uint8_t *tex)
                 for (off = 0x18; off + 8 <= T3TEX_SIZE; off += 4)
                     if (*(UINT *)(f->fake[jp] + off) == dd.Width && *(UINT *)(f->fake[jp] + off + 4) == dd.Height) {
                         *(int *)(f->fake[jp] + off) = AT_W; *(int *)(f->fake[jp] + off + 4) = AT_H;
+#ifdef BTTFJP_TEST
                         if (g_test) dlog("fake tex: size at +0x%x (%ux%u)", off, dd.Width, dd.Height);
+#endif
                         off += 4;
                     }
         }
@@ -374,8 +376,10 @@ static int hook_entries(void)
     return 1;
 }
 
-/* ---------- テスト用：英語のまま表示された文字列を記録（SetText 0x6ec540） ---------- */
 int g_font_state;                       /* 0 未初期化 / 1 動作中 / -1 使えない */
+
+#ifdef BTTFJP_TEST
+/* ---------- テスト用：英語のまま表示された文字列を記録（SetText 0x6ec540） ---------- */
 static int g_logall;
 static void __cdecl log_settext(const uint8_t *str)
 {
@@ -421,6 +425,7 @@ static void hook_settext_log(void)
         patch_bytes(A_SETTEXT, b, 10);
     }
 }
+#endif
 
 void font_init(void)
 {
@@ -429,7 +434,9 @@ void font_init(void)
     int i;
     InitializeCriticalSection(&g_cs);
     if (!g_addr) { dlog("font_init: unknown exe"); g_font_state = -1; return; }
+#ifdef BTTFJP_TEST
     if (g_test && GetEnvironmentVariableA("BTTFJP_NOFONT", NULL, 0) > 0) { dlog("font_init: skipped (test)"); return; }
+#endif
     for (i = 0; i < NCODE; i++) g_cell[i] = -1;
     if (memcmp((void *)A_GETGLYPH, sig_gg, 10) || memcmp((void *)A_PAGELOOP, sig_loop, 3) || *(uint8_t *)A_BINDCALL != 0xe8 ||
         (uint32_t)(A_BINDCALL + 5 + *(int32_t *)(A_BINDCALL + 1)) != A_BIND) {
@@ -447,7 +454,9 @@ void font_init(void)
         b[0] = 0xe8; *(int32_t *)(b + 1) = (int32_t)((uint32_t)bind_stub - (A_BINDCALL + 5));
         patch_bytes(A_BINDCALL, b, 5);
     }
+#ifdef BTTFJP_TEST
     if (g_test) { g_logall = GetEnvironmentVariableA("BTTFJP_LOGALL", NULL, 0) > 0; hook_settext_log(); }
+#endif
     g_font_state = 1;
     dlog("font_init ok");
 }

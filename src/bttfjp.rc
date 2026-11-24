@@ -1,2 +1,73 @@
+#pragma code_page(65001)
+#include <winver.h>
+
+/* 訳（tr.bin）とフォント（font.ttf）。rc はそのエピソードの build フォルダで動かす（build.bat） */
 1 BTTFJP "tr.bin"
 2 BTTFJP "font.ttf"
+
+/* バージョン情報。EP は build.bat が /d で渡す */
+#ifndef EP
+#define EP 1
+#endif
+#if EP == 1
+#define V_MINOR 1
+#define V_STR "1.1"
+#define V_STR4 "1.1.0.0"
+#define V_NAME "バック・トゥ・ザ・フューチャー ザ・ゲーム エピソード1「イッツ・アバウト・タイム」 日本語化パッチ（非公式）"
+#define V_INTERNAL "BTTF_Ep1_JP"
+#define V_URL "https://higesho.github.io/bttf-ja/ep1/"
+#elif EP == 2
+#define V_MINOR 2
+#define V_STR "1.2"
+#define V_STR4 "1.2.0.0"
+#define V_NAME "バック・トゥ・ザ・フューチャー ザ・ゲーム エピソード2「ゲット・タネン！」 日本語化パッチ（非公式）"
+#define V_INTERNAL "BTTF_Ep2_JP"
+#define V_URL "https://higesho.github.io/bttf-ja/ep2/"
+#elif EP == 3
+#define V_MINOR 2
+#define V_STR "1.2"
+#define V_STR4 "1.2.0.0"
+#define V_NAME "バック・トゥ・ザ・フューチャー ザ・ゲーム エピソード3「シチズン・ブラウン」 日本語化パッチ（非公式）"
+#define V_INTERNAL "BTTF_Ep3_JP"
+#define V_URL "https://higesho.github.io/bttf-ja/ep3/"
+#elif EP == 4
+#define V_MINOR 1
+#define V_STR "1.1"
+#define V_STR4 "1.1.0.0"
+#define V_NAME "バック・トゥ・ザ・フューチャー ザ・ゲーム エピソード4「ダブル・ヴィジョンズ」 日本語化パッチ（非公式）"
+#define V_INTERNAL "BTTF_Ep4_JP"
+#define V_URL "https://higesho.github.io/bttf-ja/ep4/"
+#elif EP == 5
+#define V_MINOR 1
+#define V_STR "1.1"
+#define V_STR4 "1.1.0.0"
+#define V_NAME "バック・トゥ・ザ・フューチャー ザ・ゲーム エピソード5「アウタタイム」 日本語化パッチ（非公式）"
+#define V_INTERNAL "BTTF_Ep5_JP"
+#define V_URL "https://higesho.github.io/bttf-ja/ep5/"
+#endif
+
+1 VERSIONINFO
+FILEVERSION 1,V_MINOR,0,0
+PRODUCTVERSION 1,V_MINOR,0,0
+FILEOS 0x40004L
+FILETYPE VFT_DLL
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "041104B0"
+    BEGIN
+      VALUE "CompanyName", "higesho"
+      VALUE "ProductName", V_NAME
+      VALUE "FileDescription", V_NAME
+      VALUE "FileVersion", V_STR4
+      VALUE "ProductVersion", V_STR
+      VALUE "InternalName", V_INTERNAL
+      VALUE "OriginalFilename", "dinput8.dll"
+      VALUE "Comments", V_URL
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0411, 1200
+  END
+END

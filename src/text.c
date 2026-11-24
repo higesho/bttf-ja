@@ -215,7 +215,9 @@ static void write_landb(const char *name, const uint8_t *d, uint32_t size)
             CloseHandle(w);
             lstrcpynA(g_names[g_nnames++], name, 64);
         }
+#ifdef BTTFJP_TEST
         if (g_test) dlog("landb %s: %d translated", name, ntr);
+#endif
     } else dlog("landb %s: parse error", name);
     free(out.p);
 }
@@ -334,7 +336,9 @@ static void build_once(void)
     static int done;
     if (done) return;
     done = 1;
+#ifdef BTTFJP_TEST
     if (g_test && GetEnvironmentVariableA("BTTFJP_NOTEXT", NULL, 0) > 0) return;   /* テスト用：英語のまま */
+#endif
     tr_load();
     if (g_tr) build_all();
 }

@@ -3,14 +3,18 @@
 #include <windows.h>
 #include <stdint.h>
 
+/* 試験用の仕組み（ログ、testio.c、dbg.c、環境変数 BTTFJP_*）は試験版（build.bat test、/DBTTFJP_TEST）にだけ入る。
+   配布版には入れない */
+
 /* ---- main.c ---- */
-extern int g_test;                      /* テストモード（BTTFJP_TEST=1） */
 extern int g_font_state;                /* font.c：-1 ならフォントのフックが使えない */
 extern HMODULE g_self;
-void dlog(const char *fmt, ...);
 void patch_jmp(uint32_t at, void *to);
 void patch_bytes(uint32_t at, const void *b, int n);
 void *iat_hook(const char *dll, const char *func, void *repl);
+#ifdef BTTFJP_TEST
+extern int g_test;                      /* テストモード（BTTFJP_TEST=1） */
+void dlog(const char *fmt, ...);
 
 /* ---- testio.c ---- */
 void testio_init(void);
@@ -21,6 +25,9 @@ HRESULT testio_wrap_dinput(void *di);
 void dbg_init(void);
 void dbg_watch(uint32_t addr, int slot, int rw_len);
 void dbg_dump(void);
+#else
+#define dlog(...) ((void)0)             /* 配布版はログを出さない */
+#endif
 
 /* ---- game.c：エピソードごとのアドレス ---- */
 typedef struct {

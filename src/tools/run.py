@@ -2,7 +2,7 @@
 #   python tools/run.py watch ADDR [SLOT] [rw]   ハードウェアブレークポイント（rw: r=読み書き w=書込）
 #   python tools/run.py dump                    監視結果をログへ
 #   python tools/run.py cur X Y                 カーソル位置（クライアント座標）
-#   python tools/win.py start            copy build/dinput8.dll into the game, launch with BTTFJP_TEST=1
+#   python tools/win.py start            copy build/test/dinput8.dll (test build) into the game, launch with BTTFJP_TEST=1
 #   python tools/win.py shot NAME [W]    back-buffer capture -> capture/NAME.png (optional width)
 #   python tools/win.py key K [K..]      tap keys (DIK names: enter esc space up down left right tab f1.. a..z 0..9)
 #   python tools/win.py hold K MS
@@ -86,7 +86,8 @@ def shot(name, width=None):
 def start():
     exe = os.path.join(GAME, EXE)
     open(os.path.join(GAME, 'steam_appid.txt'), 'w').write(str(EPS[EP][1]))  # テスト専用（直接起動用）
-    shutil.copy(os.path.join(ROOT, 'build' if EP == 1 else 'ep%d/build' % EP, 'dinput8.dll'), os.path.join(GAME, 'dinput8.dll'))
+    # 試験版の DLL（build.bat test で作る build/test/dinput8.dll）を使う。配布版には試験用の仕組みが入っていない
+    shutil.copy(os.path.join(ROOT, 'build' if EP == 1 else 'ep%d/build' % EP, 'test', 'dinput8.dll'), os.path.join(GAME, 'dinput8.dll'))
     env = dict(os.environ)
     env['BTTFJP_TEST'] = '1'
     env['BTTFJP_LOG'] = os.path.join(ROOT, 'work', 'bttfjp.log')
